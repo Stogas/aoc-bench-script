@@ -11,7 +11,7 @@ Also note that users receive different inputs - so for comparison accuracy, use 
 ### Usage:
 
 ```
-./bench.sh [options] <num_of_iterations> <num_of_warmup_iterations> "<command to run>"
+./bench.sh [options] <num_of_iterations> <num_of_warmups> "<command to run>"
 ```
 
 Options:
@@ -26,6 +26,18 @@ Note that warmup iterations are very useful for performance comparisons on JIT i
 # Quiet mode example:
 ./bench.sh -q 50 2 "node ./day1/index.js 1"
 ```
+
+# Quick one-liner
+
+You can run the script directly from GitHub using `curl` and piping to `bash` (for quick benchmarking/testing):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Stogas/aoc-bench-script/refs/heads/main/bench.sh | bash -s -- [-q] <num_of_iterations> <num_of_warmups> "<command>"
+# example
+curl -sSL https://raw.githubusercontent.com/Stogas/aoc-bench-script/refs/heads/main/bench.sh | bash -s -- -q 20 2 "echo hello"
+```
+
+**Warning:** Piping remote scripts directly to `bash` is dangerous and not recommended for production or sensitive environments. Always review scripts before running them!
 
 ### Language-specific cheatsheets:
 
