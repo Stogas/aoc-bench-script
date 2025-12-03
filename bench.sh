@@ -2,31 +2,51 @@
 set -euo pipefail
 
 # Simple portable benchmarking helper
-# Usage: ./scripts/bench.sh "<command>" [iterations] [warmup]
-# Example: ./scripts/bench.sh "go run day1/main.go -part 1" 20 2
+# Usage: ./scripts/bench.sh [iterations] [warmup] "<command>"
+# Example: ./scripts/bench.sh 20 2 "go run day1/main.go -part 1"
 
-CMD=${1:-}
+QUIET=0
+if [[ "$1" == "-q" || "$1" == "--quiet" ]]; then
+  QUIET=1
+  shift
+fi
+ITERATIONS=${1:-10}
+WARMUP=${2:-1}
+CMD=${3:-}
 if [ -z "$CMD" ]; then
-  echo "Usage: $0 \"<command>\" [iterations] [warmup]" >&2
+  echo "Usage: $0 [-q|--quiet] [iterations] [warmup] \"<command>\"" >&2
   exit 2
 fi
-
-ITERATIONS=${2:-10}
-WARMUP=${3:-1}
 
 echo "Benchmark: $CMD"
 echo "Iterations: $ITERATIONS, Warmup: $WARMUP"
 
 printf "\n--- System information ---\n"
-# CPU model
-if command -v lscpu >/dev/null 2>&1; then
-  CPU_MODEL=$(lscpu 2>/dev/null | awk -F: '/Model name|Model/ {print $2; exit}' | sed 's/^ *//')
+# System information (Linux and macOS-aware)
+if [ "$(uname -s)" = "Darwin" ]; then
+  # macOS
+  if command -v system_profiler >/dev/null 2>&1; then
+    # Prefer the human-friendly Chip or Processor Name field which may contain
+    # "Apple M2 Pro" on Apple Silicon or the Intel processor name on Intel Macs.
+    CPU_MODEL=$(system_profiler SPHardwareDataType 2>/dev/null | awk -F: '/Chip|Processor Name/ {print $2; exit}' | sed 's/^ *//')
+  else
+    # Fallbacks: try common sysctl keys
+    CPU_MODEL=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || sysctl -n hw.model 2>/dev/null || echo "unknown")
+  fi
+  CPU_CORES=$(sysctl -n hw.ncpu 2>/dev/null || echo "unknown")
+  RAM_BYTES=$(sysctl -n hw.memsize 2>/dev/null || echo 0)
+  RAM_MB=$((RAM_BYTES/1024/1024))
 else
-  CPU_MODEL=$(awk -F: '/model name/{print $2; exit}' /proc/cpuinfo 2>/dev/null | sed 's/^ *//') || CPU_MODEL="unknown"
+  # Assume Linux-like environment
+  if command -v lscpu >/dev/null 2>&1; then
+    CPU_MODEL=$(lscpu 2>/dev/null | awk -F: '/Model name|Model/ {print $2; exit}' | sed 's/^ *//')
+  else
+    CPU_MODEL=$(awk -F: '/model name/{print $2; exit}' /proc/cpuinfo 2>/dev/null | sed 's/^ *//') || CPU_MODEL="unknown"
+  fi
+  CPU_CORES=$(nproc 2>/dev/null || echo "unknown")
+  RAM_KB=$(awk '/MemTotal/ {print $2; exit}' /proc/meminfo 2>/dev/null || echo "0")
+  RAM_MB=$((RAM_KB/1024))
 fi
-CPU_CORES=$(nproc 2>/dev/null || echo "unknown")
-RAM_KB=$(awk '/MemTotal/ {print $2; exit}' /proc/meminfo 2>/dev/null || echo "0")
-RAM_MB=$((RAM_KB/1024))
 
 echo "CPU model: ${CPU_MODEL:-unknown}"
 echo "CPU cores: ${CPU_CORES:-unknown}"
@@ -34,10 +54,16 @@ echo "RAM (MB): ${RAM_MB:-unknown}"
 
 printf "\n--- Warmup (%d runs) ---\n" "$WARMUP"
 for i in $(seq 1 "$WARMUP"); do
-  echo "Warmup #$i..."
-  if ! bash -c "$CMD" >/dev/null 2>&1; then
+  if [ "$QUIET" -eq 0 ]; then
+    echo -n "Warmup #$i... "
+  fi
+  elapsed=$( { TIMEFORMAT=%R; time bash -c "$CMD" >/dev/null 2>&1; } 2>&1 ) || {
     echo "Warmup run failed (exit != 0). Aborting." >&2
     exit 1
+  }
+  ELAPSED_MS=$(awk -v t="$elapsed" 'BEGIN{printf "%d", t*1000}')
+  if [ "$QUIET" -eq 0 ]; then
+    echo "  ${ELAPSED_MS} ms"
   fi
 done
 
@@ -46,16 +72,18 @@ TMPFILE=$(mktemp)
 trap 'rm -f "$TMPFILE"' EXIT
 
 for i in $(seq 1 "$ITERATIONS"); do
-  echo "Run #$i..."
-  START=$(date +%s%N)
-  if ! bash -c "$CMD" >/dev/null 2>&1; then
+  if [ "$QUIET" -eq 0 ]; then
+    echo -en "Run #$i...\t"
+  fi
+  elapsed=$( { TIMEFORMAT=%R; time bash -c "$CMD" >/dev/null 2>&1; } 2>&1 ) || {
     echo "Run #$i failed (exit != 0). Aborting." >&2
     exit 1
-  fi
-  END=$(date +%s%N)
-  ELAPSED_MS=$(((END-START)/1000000))
+  }
+  ELAPSED_MS=$(awk -v t="$elapsed" 'BEGIN{printf "%d", t*1000}')
   echo "$ELAPSED_MS" >> "$TMPFILE"
-  echo "  ${ELAPSED_MS} ms"
+  if [ "$QUIET" -eq 0 ]; then
+    echo "  ${ELAPSED_MS} ms"
+  fi
 done
 
 COUNT=$(wc -l < "$TMPFILE" | tr -d ' ')

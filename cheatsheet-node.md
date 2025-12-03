@@ -3,10 +3,14 @@
 Run Node.js solutions using `node` with the benchmark helper:
 
 ```bash
-./scripts/bench.sh "node day1/solution.js 1" 20 2
+./scripts/bench.sh 20 2 "node day1/solution.js 1"
+# Quiet mode
+./scripts/bench.sh -q 20 2 "node day1/solution.js 1"
 
 # When you have a built/bundled binary (optional)
-./scripts/bench.sh "node ./dist/day1.js 1" 50 2
+./scripts/bench.sh 50 2 "node ./dist/day1.js 1"
+# Quiet mode
+./scripts/bench.sh -q 50 2 "node ./dist/day1.js 1"
 ```
 
 Tips
