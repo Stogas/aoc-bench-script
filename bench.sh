@@ -20,7 +20,8 @@ fi
 
 
 echo -e "# Benchmark Results\n"
-echo "**Command:** \\`${CMD}\\`"
+# print the command wrapped in markdown code ticks without emitting literal backslashes
+printf '**Command:** `%s`\n' "$CMD"
 echo "**Iterations:** $ITERATIONS, **Warmup:** $WARMUP"
 
 # System info as Markdown
