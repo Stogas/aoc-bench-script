@@ -39,6 +39,38 @@ curl -sSL https://raw.githubusercontent.com/Stogas/aoc-bench-script/refs/heads/m
 
 **Warning:** Piping remote scripts directly to `bash` is dangerous and not recommended for production or sensitive environments. Always review scripts before running them!
 
+# Example output:
+
+````markdown
+# Benchmark Results
+
+**Command:** \hello asd\
+**Iterations:** 100, **Warmup:** 1
+
+## System Information
+
+```
+CPU model: Apple M4 Pro
+CPU cores: 14
+RAM (MB): 24576
+```
+
+## Warmup (1 runs)
+
+
+## Measurements (100 runs)
+
+
+## Summary
+
+| Metric      | Value (ms) |
+|-------------|------------|
+| Min         | 3       |
+| Median      | 3    |
+| P95         | 3    |
+| Max         | 4       |
+````
+
 ### Language-specific cheatsheets:
 
 - `cheatsheet-go.md`

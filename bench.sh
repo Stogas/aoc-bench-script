@@ -18,10 +18,14 @@ if [ -z "$CMD" ]; then
   exit 2
 fi
 
-echo "Benchmark: $CMD"
-echo "Iterations: $ITERATIONS, Warmup: $WARMUP"
 
-printf "\n--- System information ---\n"
+echo -e "# Benchmark Results\n"
+echo "**Command:** \\`${CMD}\\`"
+echo "**Iterations:** $ITERATIONS, **Warmup:** $WARMUP"
+
+# System info as Markdown
+echo -e "\n## System Information\n"
+echo '```'
 # System information (Linux and macOS-aware)
 if [ "$(uname -s)" = "Darwin" ]; then
   # macOS
@@ -51,11 +55,15 @@ fi
 echo "CPU model: ${CPU_MODEL:-unknown}"
 echo "CPU cores: ${CPU_CORES:-unknown}"
 echo "RAM (MB): ${RAM_MB:-unknown}"
+echo '```'
 
-printf "\n--- Warmup (%d runs) ---\n" "$WARMUP"
+echo -e "\n## Warmup (${WARMUP} runs)\n"
+if [ "$QUIET" -eq 0 ]; then
+  echo '```'
+fi
 for i in $(seq 1 "$WARMUP"); do
   if [ "$QUIET" -eq 0 ]; then
-    echo -n "Warmup #$i... "
+    echo -n "Warmup #$i: "
   fi
   elapsed=$( { TIMEFORMAT=%R; time bash -c "$CMD" >/dev/null 2>&1; } 2>&1 ) || {
     echo "Warmup run failed (exit != 0). Aborting." >&2
@@ -63,17 +71,22 @@ for i in $(seq 1 "$WARMUP"); do
   }
   ELAPSED_MS=$(awk -v t="$elapsed" 'BEGIN{printf "%d", t*1000}')
   if [ "$QUIET" -eq 0 ]; then
-    echo "  ${ELAPSED_MS} ms"
+    echo "${ELAPSED_MS} ms"
   fi
 done
+if [ "$QUIET" -eq 0 ]; then
+  echo '```'
+fi
 
-printf "\n--- Measurements (%d runs) ---\n" "$ITERATIONS"
+echo -e "\n## Measurements (${ITERATIONS} runs)\n"
 TMPFILE=$(mktemp)
 trap 'rm -f "$TMPFILE"' EXIT
-
+if [ "$QUIET" -eq 0 ]; then
+  echo '```'
+fi
 for i in $(seq 1 "$ITERATIONS"); do
   if [ "$QUIET" -eq 0 ]; then
-    echo -en "Run #$i...\t"
+    echo -n "Run #$i: "
   fi
   elapsed=$( { TIMEFORMAT=%R; time bash -c "$CMD" >/dev/null 2>&1; } 2>&1 ) || {
     echo "Run #$i failed (exit != 0). Aborting." >&2
@@ -82,9 +95,12 @@ for i in $(seq 1 "$ITERATIONS"); do
   ELAPSED_MS=$(awk -v t="$elapsed" 'BEGIN{printf "%d", t*1000}')
   echo "$ELAPSED_MS" >> "$TMPFILE"
   if [ "$QUIET" -eq 0 ]; then
-    echo "  ${ELAPSED_MS} ms"
+    echo "${ELAPSED_MS} ms"
   fi
 done
+if [ "$QUIET" -eq 0 ]; then
+  echo '```'
+fi
 
 COUNT=$(wc -l < "$TMPFILE" | tr -d ' ')
 if [ "$COUNT" -eq 0 ]; then
@@ -102,12 +118,13 @@ MEDIAN=$(sort -n "$TMPFILE" | awk -v n="$COUNT" ' {a[++i]=$1} END { if (n%2==1) 
 P95_IDX=$(awk -v n=$COUNT 'BEGIN{printf "%d", (n*0.95==int(n*0.95)?n*0.95:int(n*0.95)+1)}')
 P95=$(sort -n "$TMPFILE" | awk -v idx="$P95_IDX" 'NR==idx{print; exit}')
 
-printf "\n--- Summary ---\n"
-echo "Command: $CMD"
-echo "Iterations: $ITERATIONS"
-echo "Min (ms): $MIN"
-echo "Median (ms): $MEDIAN"
-echo "P95 (ms): ${P95:-$MAX}"
-echo "Max (ms): $MAX"
+
+echo -e "\n## Summary\n"
+echo '| Metric      | Value (ms) |'
+echo '|-------------|------------|'
+echo "| Min         | $MIN       |"
+echo "| Median      | $MEDIAN    |"
+echo "| P95         | ${P95:-$MAX}    |"
+echo "| Max         | $MAX       |"
 
 exit 0
