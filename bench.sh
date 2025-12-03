@@ -114,9 +114,13 @@ MAX=$(sort -n "$TMPFILE" | tail -n1)
 # median
 MEDIAN=$(sort -n "$TMPFILE" | awk -v n="$COUNT" ' {a[++i]=$1} END { if (n%2==1) print a[(n+1)/2]; else print (a[n/2]+a[n/2+1])/2 }')
 
+
 # p95 index (ceiling)
 P95_IDX=$(awk -v n=$COUNT 'BEGIN{printf "%d", (n*0.95==int(n*0.95)?n*0.95:int(n*0.95)+1)}')
 P95=$(sort -n "$TMPFILE" | awk -v idx="$P95_IDX" 'NR==idx{print; exit}')
+
+# average
+AVG=$(awk '{sum+=$1} END {if (NR>0) printf "%d", sum/NR; else print "-"}' "$TMPFILE")
 
 
 echo -e "\n## Summary\n"
@@ -124,6 +128,7 @@ echo '| Metric      | Value (ms) |'
 echo '|-------------|------------|'
 echo "| Min         | $MIN       |"
 echo "| Median      | $MEDIAN    |"
+echo "| Average     | $AVG       |"
 echo "| P95         | ${P95:-$MAX}    |"
 echo "| Max         | $MAX       |"
 
