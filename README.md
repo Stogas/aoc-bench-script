@@ -42,17 +42,18 @@ curl -sSL https://raw.githubusercontent.com/Stogas/aoc-bench-script/refs/heads/m
 # Example output:
 
 ````markdown
+$ ./bench.sh -q 100 1 echo hello
 # Benchmark Results
 
-**Command:** \hello asd\
+**Command:** `echo hello`
 **Iterations:** 100, **Warmup:** 1
 
 ## System Information
 
 ```
-CPU model: Apple M4 Pro
-CPU cores: 14
-RAM (MB): 24576
+CPU model: AMD Ryzen 5 5600X 6-Core Processor
+CPU cores: 12
+RAM (MB): 15903
 ```
 
 ## Warmup (1 runs)
@@ -65,11 +66,17 @@ RAM (MB): 24576
 
 | Metric      | Value (ms) |
 |-------------|------------|
-| Min         | 3       |
-| Median      | 3    |
-| Average     | 3       |
+| Min         | 2       |
+| Median      | 2    |
+| Average     | 2       |
 | P95         | 3    |
-| Max         | 4       |
+| Max         | 3       |
+
+| Memory      | Value (MB) |
+|-------------|------------|
+| Min         | 3   |
+| Average     | 3   |
+| Max         | 3   |
 ````
 
 ### Language-specific cheatsheets:
